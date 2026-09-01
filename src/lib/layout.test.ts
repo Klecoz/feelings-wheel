@@ -250,3 +250,93 @@ describe("scaling to screen units", () => {
     expect(d).not.toContain("A 1 1");
   });
 });
+
+describe("switching straight from one open core to another", () => {
+  // The regression that shipped: tapping a second core while one was already
+  // open put a wedge's start a full turn from its end, and it ballooned out to
+  // swallow most of the wheel. Every transition is now covered, not just the
+  // overview-to-focus one.
+  const STATES = [null, ...CORES.map((c) => c.id)];
+
+  it("never lets a wedge exceed a full turn, on any transition", () => {
+    for (const a of STATES) {
+      for (const b of STATES) {
+        if (a === b) continue;
+        const from = computeLayout(a);
+        const to = computeLayout(b);
+        for (const t of [0, 0.1, 0.25, 0.5, 0.75, 0.9, 1]) {
+          for (const [id, wedge] of lerpLayout(from, to, t)) {
+            const sweep = wedge.endAngle - wedge.startAngle;
+            expect(
+              sweep,
+              `${id} spans ${((sweep * 180) / Math.PI).toFixed(0)}deg at t=${t} going ${a}->${b}`,
+            ).toBeLessThanOrEqual(TAU + 1e-9);
+            expect(sweep, `${id} inverted at t=${t} going ${a}->${b}`).toBeGreaterThanOrEqual(-1e-9);
+          }
+        }
+      }
+    }
+  });
+
+  it("keeps every wedge's width between its two endpoint widths", () => {
+    for (const a of STATES) {
+      for (const b of STATES) {
+        if (a === b) continue;
+        const from = computeLayout(a);
+        const to = computeLayout(b);
+        for (const t of [0.25, 0.5, 0.75]) {
+          const mid = lerpLayout(from, to, t);
+          for (const [id, wedge] of mid) {
+            const sweep = wedge.endAngle - wedge.startAngle;
+            const lo = Math.min(
+              from.get(id)!.endAngle - from.get(id)!.startAngle,
+              to.get(id)!.endAngle - to.get(id)!.startAngle,
+            );
+            const hi = Math.max(
+              from.get(id)!.endAngle - from.get(id)!.startAngle,
+              to.get(id)!.endAngle - to.get(id)!.startAngle,
+            );
+            expect(sweep).toBeGreaterThanOrEqual(lo - 1e-9);
+            expect(sweep).toBeLessThanOrEqual(hi + 1e-9);
+          }
+        }
+      }
+    }
+  });
+
+  it("lands exactly on the destination layout", () => {
+    for (const a of STATES) {
+      for (const b of STATES) {
+        if (a === b) continue;
+        const to = computeLayout(b);
+        const landed = lerpLayout(computeLayout(a), to, 1);
+        for (const [id, wedge] of landed) {
+          const target = to.get(id)!;
+          const sweep = wedge.endAngle - wedge.startAngle;
+          expect(sweep).toBeCloseTo(target.endAngle - target.startAngle, 9);
+          // Same place on the circle, allowing for a whole-turn difference.
+          const delta = alignAngle(wedge.startAngle, target.startAngle) - target.startAngle;
+          expect(Math.abs(delta)).toBeLessThan(1e-9);
+          expect(wedge.outerRadius).toBeCloseTo(target.outerRadius, 9);
+          expect(wedge.opacity).toBeCloseTo(target.opacity, 9);
+        }
+      }
+    }
+  });
+
+  it("still takes the short way round", () => {
+    for (const a of CORES.map((c) => c.id)) {
+      for (const b of CORES.map((c) => c.id)) {
+        if (a === b) continue;
+        const from = computeLayout(a);
+        const to = computeLayout(b);
+        for (const [id, wedge] of from) {
+          const travel = Math.abs(
+            alignAngle(to.get(id)!.startAngle, wedge.startAngle) - wedge.startAngle,
+          );
+          expect(travel, `${id} spins too far going ${a}->${b}`).toBeLessThanOrEqual(Math.PI + 1e-9);
+        }
+      }
+    }
+  });
+});

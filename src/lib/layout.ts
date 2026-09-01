@@ -199,8 +199,14 @@ export function computeLayout(focusedCoreId: string | null): Layout {
 }
 
 /**
- * Blend two layouts. Angles are aligned onto the same branch first, so a wedge
- * never takes the scenic route around the wheel to reach its destination.
+ * Blend two layouts.
+ *
+ * A wedge moves as a rigid body: only its start is snapped onto the nearest
+ * branch, and its end is then carried along by its own interpolated width.
+ * Aligning the two ends independently is wrong and was a real bug — switching
+ * straight from one open core to another could put a wedge's start a full turn
+ * from its end, silently adding 2pi to its width, and the wedge would balloon
+ * out to swallow most of the wheel.
  */
 export function lerpLayout(from: Layout, to: Layout, t: number): Layout {
   const out: Layout = new Map();
@@ -211,11 +217,12 @@ export function lerpLayout(from: Layout, to: Layout, t: number): Layout {
       continue;
     }
     const start = alignAngle(b.startAngle, a.startAngle);
-    const end = alignAngle(b.endAngle, a.endAngle);
+    const sweep = lerp(a.endAngle - a.startAngle, b.endAngle - b.startAngle, t);
+    const at = lerp(a.startAngle, start, t);
     out.set(id, {
       id,
-      startAngle: lerp(a.startAngle, start, t),
-      endAngle: lerp(a.endAngle, end, t),
+      startAngle: at,
+      endAngle: at + sweep,
       innerRadius: lerp(a.innerRadius, b.innerRadius, t),
       outerRadius: lerp(a.outerRadius, b.outerRadius, t),
       opacity: lerp(a.opacity, b.opacity, t),
