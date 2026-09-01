@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* Light only, by choice. The palette is warm and low-contrast on purpose:
+   this gets opened in vulnerable moments and should not glare. */
+@theme {
+  --color-ground: #f7f3ee;
+  --color-surface: #fffdfa;
+  --color-ink: #2b2724;
+  --color-ink-soft: #6b625b;
+  --color-ink-faint: #9a9088;
+  --color-line: #e4dcd2;
+  --color-accent: #6b5b95;
+  --color-accent-soft: #efeaf5;
+
+  --font-sans: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, -apple-system,
+    sans-serif;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* The wheel is a fixed-height canvas; rubber-banding it feels broken. */
+  overscroll-behavior-y: none;
+}
+
+/* Wedges are tapped rapidly and repeatedly. Kill the mobile tap flash and the
+   double-tap-to-zoom delay so selection feels immediate. */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+[role="button"] {
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
