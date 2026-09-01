@@ -121,7 +121,7 @@ export function SummaryScreen() {
 
             <section className="mt-7">
               <h2 className="mb-2 text-sm font-semibold text-[var(--color-ink-soft)]">
-                Everything, in order
+                Every word you used
               </h2>
               <ul className="text-sm text-[var(--color-ink-soft)]">
                 {summary.topWords.map((tally) => (

@@ -29,7 +29,12 @@ export function exportJson(store: Store, now: Date = new Date()): string {
 }
 
 export function suggestedFilename(now: Date = new Date()): string {
-  const stamp = now.toISOString().slice(0, 10);
+  // The local date, not the UTC one. Everywhere else in the app a day is the
+  // day you were living in, and an export made at 8pm should not be filed
+  // under tomorrow.
+  const stamp =
+    `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}` +
+    `-${String(now.getDate()).padStart(2, "0")}`;
   return `feelings-wheel-${stamp}.json`;
 }
 

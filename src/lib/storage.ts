@@ -123,3 +123,19 @@ export function newId(): string {
   }
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
+
+/**
+ * Read the current store, apply a change to *that*, and write it back.
+ *
+ * The read matters. Applying a change to a copy the tab loaded earlier and
+ * writing the whole thing back silently destroys anything saved in between —
+ * which is what a second tab, or the installed app open alongside a browser
+ * tab, will do to you. Same failure the import merge guards against, one layer
+ * down.
+ */
+export function mutateStore(fn: (store: Store) => Store): Store {
+  const fresh = loadStore();
+  const next = fn(fresh);
+  saveStore(next);
+  return next;
+}

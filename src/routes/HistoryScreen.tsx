@@ -1,21 +1,18 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { paletteFor } from "../data/colors";
 import { EMOTION_BY_ID } from "../data/emotions";
-import { deleteEntry, groupByDay, knownTags, updateEntry } from "../lib/entries";
+import { deleteEntry, groupByDay } from "../lib/entries";
 import { relativeDay, timeOfDay } from "../lib/datetime";
 import { pathLabels } from "../lib/tree";
 import { useStore } from "../lib/store-context";
-import { SaveSheet } from "../components/SaveSheet";
-import type { Entry } from "../lib/storage";
 
 export function HistoryScreen() {
   const { store, update } = useStore();
-  const [editing, setEditing] = useState<Entry | null>(null);
+  const navigate = useNavigate();
   const [confirming, setConfirming] = useState<string | null>(null);
 
   const days = useMemo(() => groupByDay(store.entries), [store.entries]);
-  const tags = useMemo(() => knownTags(store.entries), [store.entries]);
   const sessionDates = useMemo(() => new Set(store.sessions), [store.sessions]);
 
   if (days.length === 0) {
@@ -74,7 +71,7 @@ export function HistoryScreen() {
                   <span className="flex-1" />
                   <button
                     type="button"
-                    onClick={() => setEditing(entry)}
+                    onClick={() => navigate(`/?edit=${encodeURIComponent(entry.id)}`)}
                     className="min-h-8 px-1 font-medium text-[var(--color-ink-soft)] underline-offset-2 hover:underline"
                   >
                     Edit
@@ -116,22 +113,6 @@ export function HistoryScreen() {
         ))}
       </div>
 
-      {editing && (
-        <SaveSheet
-          title="Edit this check-in"
-          selectedIds={editing.emotionIds}
-          initialAt={new Date(editing.at)}
-          initialTags={editing.tags}
-          knownTags={tags}
-          onCancel={() => setEditing(null)}
-          onSave={(at, newTags) => {
-            update((current) =>
-              updateEntry(current, editing.id, { at: at.toISOString(), tags: newTags }),
-            );
-            setEditing(null);
-          }}
-        />
-      )}
     </div>
   );
 }

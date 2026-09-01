@@ -1,7 +1,7 @@
 import { Route, Routes } from "react-router-dom";
 import { StoreProvider } from "./components/StoreProvider";
 import { BottomNav } from "./components/BottomNav";
-import { WheelScreen } from "./routes/WheelScreen";
+import { WheelRoute } from "./routes/WheelScreen";
 import { HistoryScreen } from "./routes/HistoryScreen";
 import { SummaryScreen } from "./routes/SummaryScreen";
 import { SettingsScreen } from "./routes/SettingsScreen";
@@ -17,12 +17,12 @@ export default function App() {
         <StorageBanner />
         <main className="flex min-h-0 flex-1 flex-col">
           <Routes>
-            <Route path="/" element={<WheelScreen />} />
-            <Route path="/c/:coreId" element={<WheelScreen />} />
+            <Route path="/" element={<WheelRoute />} />
+            <Route path="/c/:coreId" element={<WheelRoute />} />
             <Route path="/history" element={<HistoryScreen />} />
             <Route path="/summary" element={<SummaryScreen />} />
             <Route path="/settings" element={<SettingsScreen />} />
-            <Route path="*" element={<WheelScreen />} />
+            <Route path="*" element={<WheelRoute />} />
           </Routes>
         </main>
         <BottomNav />

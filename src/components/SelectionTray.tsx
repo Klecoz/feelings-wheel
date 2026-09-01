@@ -4,12 +4,14 @@ import { pathLabels } from "../lib/tree";
 
 export interface SelectionTrayProps {
   selectedIds: string[];
+  /** Overridden when editing an existing check-in rather than making one. */
+  saveLabel?: string;
   onRemove: (id: string) => void;
   onClear: () => void;
   onSave: () => void;
 }
 
-export function SelectionTray({ selectedIds, onRemove, onClear, onSave }: SelectionTrayProps) {
+export function SelectionTray({ selectedIds, saveLabel, onRemove, onClear, onSave }: SelectionTrayProps) {
   if (selectedIds.length === 0) return null;
 
   return (
@@ -55,7 +57,8 @@ export function SelectionTray({ selectedIds, onRemove, onClear, onSave }: Select
           onClick={onSave}
           className="min-h-11 flex-1 rounded-xl bg-[var(--color-accent)] px-4 text-sm font-semibold text-white"
         >
-          Save {selectedIds.length === 1 ? "this feeling" : `these ${selectedIds.length}`}
+          {saveLabel ??
+            `Save ${selectedIds.length === 1 ? "this feeling" : `these ${selectedIds.length}`}`}
         </button>
       </div>
     </div>

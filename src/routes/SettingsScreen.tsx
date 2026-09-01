@@ -26,8 +26,14 @@ export function SettingsScreen() {
     setMessage(null);
     setProblem(null);
     try {
-      const result = importJson(await file.text(), store);
-      update(() => result.store);
+      const text = await file.text();
+      // Merge inside the update so it applies to whatever is actually stored
+      // now, not to the copy this tab happened to load.
+      let result = importJson(text, store);
+      update((current) => {
+        result = importJson(text, current);
+        return result.store;
+      });
       setMessage(
         result.added === 0 && result.sessionsAdded === 0
           ? "Nothing new in that file — everything in it was already here."

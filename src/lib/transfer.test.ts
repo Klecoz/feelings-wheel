@@ -66,9 +66,13 @@ describe("export and import", () => {
     expect(result.store.entries.map((e) => e.id)).toEqual(["good"]);
   });
 
-  it("names the file by date so backups sort themselves", () => {
-    expect(suggestedFilename(new Date("2026-08-31T12:00:00Z"))).toBe(
+  it("names the file by your local date, not the UTC one", () => {
+    // Late evening must not file the export under tomorrow.
+    expect(suggestedFilename(new Date(2026, 7, 31, 20, 30))).toBe(
       "feelings-wheel-2026-08-31.json",
+    );
+    expect(suggestedFilename(new Date(2026, 0, 5, 1, 0))).toBe(
+      "feelings-wheel-2026-01-05.json",
     );
   });
 });

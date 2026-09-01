@@ -4,10 +4,12 @@ import {
   emptyStore,
   isEntry,
   loadStore,
+  mutateStore,
   parseStore,
   saveStore,
   type Entry,
 } from "./storage";
+import { markSession } from "./sessions";
 import { addEntry, createEntry, deleteEntry, groupByDay, knownTags, normaliseTags, sortEntries, updateEntry } from "./entries";
 
 const entry = (over: Partial<Entry> = {}): Entry => ({
@@ -122,5 +124,45 @@ describe("grouping history by day", () => {
 
   it("returns nothing for no entries", () => {
     expect(groupByDay([])).toEqual([]);
+  });
+});
+
+describe("writing without clobbering another writer", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("applies the change to what is stored now, not to a stale copy", () => {
+    // The multi-tab bug: tab two loads the store, tab one saves an entry, then
+    // tab two saves and wipes it out. Reading fresh on every write is the fix.
+    saveStore({ version: 1, entries: [entry({ id: "first" })], sessions: [] });
+    const stale = loadStore();
+
+    // Another tab adds one behind our back.
+    saveStore({ ...stale, entries: [...stale.entries, entry({ id: "from-other-tab" })] });
+
+    const result = mutateStore((current) => addEntry(current, entry({ id: "mine" })));
+    expect(result.entries.map((e) => e.id).sort()).toEqual([
+      "first",
+      "from-other-tab",
+      "mine",
+    ]);
+    expect(loadStore().entries).toHaveLength(3);
+  });
+
+  it("does not resurrect an entry another writer deleted", () => {
+    saveStore({ version: 1, entries: [entry({ id: "a" }), entry({ id: "b" })], sessions: [] });
+    const stale = loadStore();
+    saveStore({ ...stale, entries: stale.entries.filter((e) => e.id !== "a") });
+
+    const result = mutateStore((current) => addEntry(current, entry({ id: "c" })));
+    expect(result.entries.map((e) => e.id).sort()).toEqual(["b", "c"]);
+  });
+
+  it("merges session marks from another writer too", () => {
+    saveStore({ version: 1, entries: [], sessions: ["2026-08-01"] });
+    const stale = loadStore();
+    saveStore({ ...stale, sessions: ["2026-08-01", "2026-08-20"] });
+
+    const result = mutateStore((current) => markSession(current, "2026-09-01"));
+    expect(result.sessions).toEqual(["2026-08-01", "2026-08-20", "2026-09-01"]);
   });
 });
