@@ -3,6 +3,7 @@ import { longDate } from "../lib/datetime";
 import { startOfLocalDay, unmarkSession } from "../lib/sessions";
 import { ImportError, exportJson, importJson, suggestedFilename } from "../lib/transfer";
 import { useStore } from "../lib/store-context";
+import { OverviewChoice } from "../components/OverviewChoice";
 
 export function SettingsScreen() {
   const { store, update } = useStore();
@@ -57,6 +58,18 @@ export function SettingsScreen() {
         <h1 className="text-xl font-semibold">Settings</h1>
 
         <section className="mt-6 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
+          <h2 className="font-semibold">When you open the wheel</h2>
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-ink-soft)]">
+            What the wheel shows before you tap anything. Opening a feeling looks
+            the same either way.
+          </p>
+          <OverviewChoice
+            value={store.overview}
+            onChange={(overview) => update((current) => ({ ...current, overview }))}
+          />
+        </section>
+
+        <section className="mt-5 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
           <h2 className="font-semibold">Your data</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-ink-soft)]">
             {store.entries.length} {store.entries.length === 1 ? "check-in" : "check-ins"}

@@ -76,3 +76,19 @@ describe("export and import", () => {
     );
   });
 });
+
+
+describe("what a transfer does not carry", () => {
+  it("leaves this device's wheel preference alone", () => {
+    // How the wheel looks here is a preference of this screen. Carrying a
+    // backup from the laptop should not rearrange the phone.
+    const phone = store({ overview: "cores" });
+    const laptop = store({ entries: [entry("a")], overview: "full" });
+    expect(importJson(exportJson(laptop), phone).store.overview).toBe("cores");
+  });
+
+  it("keeps the preference out of the exported file entirely", () => {
+    const file = JSON.parse(exportJson(store({ overview: "cores" })));
+    expect(file).not.toHaveProperty("overview");
+  });
+});

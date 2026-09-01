@@ -118,6 +118,7 @@ function WheelScreen() {
         <div className="flex min-h-0 flex-1 items-center justify-center p-2 sm:p-4">
           <Wheel
             focusedCoreId={focusedCoreId}
+            overviewMode={store.overview}
             selectedIds={selectedIds}
             onFocus={onFocus}
             onPick={onPick}

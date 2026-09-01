@@ -340,3 +340,99 @@ describe("switching straight from one open core to another", () => {
     }
   });
 });
+
+describe("the cores-only overview", () => {
+  const cores = computeLayout(null, "cores");
+  const full = computeLayout(null, "full");
+
+  it("still places every one of the 130 nodes", () => {
+    expect(cores.size).toBe(130);
+  });
+
+  it("shows the 7 cores and nothing else", () => {
+    const shown = EMOTIONS.filter((n) => (cores.get(n.id)?.opacity ?? 0) > 0);
+    expect(shown).toHaveLength(7);
+    expect(shown.every((n) => n.ring === "core")).toBe(true);
+  });
+
+  it("tiles the whole circle with no gaps or overlaps", () => {
+    const wedges = visible(cores, "core");
+    expect(totalSweep(wedges)).toBeCloseTo(TAU, 9);
+    expectNoOverlap(wedges);
+  });
+
+  it("gives the cores the full depth of the wheel", () => {
+    for (const core of CORES) {
+      const w = cores.get(core.id)!;
+      expect(w.outerRadius).toBeCloseTo(1, 9);
+      expect(w.innerRadius).toBeCloseTo(full.get(core.id)!.innerRadius, 9);
+    }
+  });
+
+  it("leaves the core angles untouched, so the wheel cannot shift", () => {
+    // Switching the setting must not rotate anything: a core has to open from
+    // the same place under either mode.
+    for (const core of CORES) {
+      expect(cores.get(core.id)!.startAngle).toBeCloseTo(full.get(core.id)!.startAngle, 9);
+      expect(cores.get(core.id)!.endAngle).toBeCloseTo(full.get(core.id)!.endAngle, 9);
+    }
+  });
+
+  it("actually makes the smallest target bigger — the whole point", () => {
+    const radius = 174; // a 390px-wide phone
+    const smallest = (layout: Layout) => {
+      let min = Infinity;
+      for (const node of EMOTIONS) {
+        const w = layout.get(node.id);
+        if (!w || w.opacity <= 0.01) continue;
+        const mid = ((w.innerRadius + w.outerRadius) / 2) * radius;
+        min = Math.min(min, Math.abs(w.endAngle - w.startAngle) * mid);
+      }
+      return min;
+    };
+    expect(smallest(full)).toBeLessThan(25);
+    expect(smallest(cores)).toBeGreaterThan(55);
+    expect(smallest(cores)).toBeGreaterThan(smallest(full) * 3);
+  });
+
+  it("parks hidden words in their own slot, not somewhere arbitrary", () => {
+    // So opening a core unfolds its words from where they belong.
+    const lonely = cores.get("sad.lonely")!;
+    const shown = full.get("sad.lonely")!;
+    const mid = (shown.startAngle + shown.endAngle) / 2;
+    expect(lonely.opacity).toBe(0);
+    expect(lonely.startAngle).toBeCloseTo(mid, 9);
+  });
+
+  it("opens a core to exactly the same view as the full wheel does", () => {
+    // Only the resting screen differs; focusing is unchanged.
+    const a = computeLayout("sad", "cores");
+    const b = computeLayout("sad", "full");
+    for (const [id, wedge] of a) expect(wedge).toEqual(b.get(id));
+  });
+
+  it("tweens cleanly in and out of every focus, like the full wheel", () => {
+    for (const core of CORES) {
+      const from = computeLayout(null, "cores");
+      const to = computeLayout(core.id, "cores");
+      for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+        for (const [id, w] of lerpLayout(from, to, t)) {
+          const sweep = w.endAngle - w.startAngle;
+          expect(sweep, `${id} at t=${t}`).toBeLessThanOrEqual(TAU + 1e-9);
+          expect(sweep, `${id} inverted at t=${t}`).toBeGreaterThanOrEqual(-1e-9);
+          expect(w.outerRadius).toBeGreaterThanOrEqual(w.innerRadius - 1e-9);
+        }
+      }
+    }
+  });
+
+  it("tweens sanely if the setting changes while the wheel is up", () => {
+    for (const t of [0, 0.5, 1]) {
+      for (const [id, w] of lerpLayout(full, cores, t)) {
+        const sweep = w.endAngle - w.startAngle;
+        expect(sweep, `${id} at t=${t}`).toBeLessThanOrEqual(TAU + 1e-9);
+        expect(sweep).toBeGreaterThanOrEqual(-1e-9);
+      }
+    }
+  });
+});

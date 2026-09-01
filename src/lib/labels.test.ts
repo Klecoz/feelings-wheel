@@ -78,7 +78,8 @@ describe("uniform type per group", () => {
     // neighbours, which is exactly what makes a feelings wheel unreadable.
     for (const radius of [150, 170, 188, 380]) {
       for (const focus of FOCUSES) {
-        const layout = computeLayout(focus);
+        for (const mode of ["full", "cores"] as const) {
+        const layout = computeLayout(focus, mode);
         const styles = labelStylesFor(layout, focus, radius, LINES);
         for (const node of EMOTIONS) {
           const wedge = layout.get(node.id)!;
@@ -101,6 +102,7 @@ describe("uniform type per group", () => {
             `${node.label} (${node.id}) overflows across at r=${radius}, focus=${focus}`,
           ).toBeLessThanOrEqual(across + 0.01);
         }
+        }
       }
     }
   });
@@ -109,14 +111,16 @@ describe("uniform type per group", () => {
     // A wheel whose outer ring drops to 5px is technically laid out and
     // practically useless. 170 is roughly the radius on a 390px-wide phone.
     for (const focus of FOCUSES) {
-      const layout = computeLayout(focus);
-      const styles = labelStylesFor(layout, focus, 170, LINES);
-      for (const node of EMOTIONS) {
-        if ((layout.get(node.id)?.opacity ?? 0) <= 0.01) continue;
-        expect(
-          styles.get(node.id)!.fontSize,
-          `${node.label} is too small to read at focus=${focus}`,
-        ).toBeGreaterThanOrEqual(7);
+      for (const mode of ["full", "cores"] as const) {
+        const layout = computeLayout(focus, mode);
+        const styles = labelStylesFor(layout, focus, 170, LINES);
+        for (const node of EMOTIONS) {
+          if ((layout.get(node.id)?.opacity ?? 0) <= 0.01) continue;
+          expect(
+            styles.get(node.id)!.fontSize,
+            `${node.label} is too small to read at focus=${focus}, mode=${mode}`,
+          ).toBeGreaterThanOrEqual(7);
+        }
       }
     }
   });

@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { EMOTIONS } from "../data/emotions";
 import { arcPath, midAngle, polar } from "../lib/geometry";
-import { computeLayout, lerpLayout, scaleWedge, type Layout } from "../lib/layout";
+import {
+  computeLayout,
+  lerpLayout,
+  scaleWedge,
+  type Layout,
+  type OverviewMode,
+} from "../lib/layout";
 import { labelStylesFor, labelLines, labelRotation, type LabelStyle } from "../lib/labels";
 import { isRelated } from "../lib/tree";
 import { Wedge } from "./Wedge";
@@ -13,6 +19,8 @@ const DURATION = 380;
 
 export interface WheelProps {
   focusedCoreId: string | null;
+  /** How much the resting screen shows. Only affects the unfocused wheel. */
+  overviewMode: OverviewMode;
   selectedIds: string[];
   onFocus: (coreId: string | null) => void;
   onPick: (id: string) => void;
@@ -25,12 +33,18 @@ const prefersReducedMotion = () =>
   typeof matchMedia === "function" &&
   matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProps) {
+export function Wheel({
+  focusedCoreId,
+  overviewMode,
+  selectedIds,
+  onFocus,
+  onPick,
+}: WheelProps) {
   const paths = useRef(new Map<string, SVGPathElement>());
   const labels = useRef(new Map<string, SVGGElement>());
   const texts = useRef(new Map<string, SVGTextElement>());
 
-  const current = useRef<Layout>(computeLayout(focusedCoreId));
+  const current = useRef<Layout>(computeLayout(focusedCoreId, overviewMode));
   const frame = useRef<number | null>(null);
   const styles = useRef<Map<string, LabelStyle>>(new Map());
 
@@ -83,7 +97,7 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
   );
 
   useEffect(() => {
-    const to = computeLayout(focusedCoreId);
+    const to = computeLayout(focusedCoreId, overviewMode);
     sizeText(to, focusedCoreId);
 
     if (prefersReducedMotion()) {
@@ -110,7 +124,7 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
     return () => {
       if (frame.current !== null) cancelAnimationFrame(frame.current);
     };
-  }, [focusedCoreId, paint, sizeText]);
+  }, [focusedCoreId, overviewMode, paint, sizeText]);
 
   // Re-assert geometry after every render. React owns colour and stroke, but
   // not position — without this, selecting a word would reset the zoom.
@@ -119,7 +133,7 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
   });
 
   useLayoutEffect(() => {
-    sizeText(computeLayout(focusedCoreId), focusedCoreId);
+    sizeText(computeLayout(focusedCoreId, overviewMode), focusedCoreId);
     // Only on mount: afterwards the effect above owns sizing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

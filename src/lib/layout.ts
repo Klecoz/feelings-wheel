@@ -79,9 +79,24 @@ function coreAngles(order: EmotionNode[], from: number, span: number) {
   return out;
 }
 
-function overviewLayout(): Layout {
+/**
+ * How much of the wheel the resting screen shows.
+ *
+ * "full" is the default and what the app has always done: 7 cores plus all 41
+ * secondary words. "cores" shows only the 7, each filling the whole disc — the
+ * narrowest tap target goes from about 20px to 64px on a 390px phone, and you
+ * open onto 7 words rather than 48. What it costs is the map of the whole
+ * vocabulary at a glance, which is why it is a preference rather than a change.
+ *
+ * Core ANGLES are identical either way, so a focused core still grows out of
+ * exactly where it sat and switching the setting cannot move the wheel.
+ */
+export type OverviewMode = "full" | "cores";
+
+function overviewLayout(mode: OverviewMode): Layout {
   const layout: Layout = new Map();
   const spans = coreAngles(CORES, 0, TAU);
+  const showSecondary = mode === "full";
 
   for (const core of CORES) {
     const span = spans.get(core.id)!;
@@ -90,7 +105,7 @@ function overviewLayout(): Layout {
       startAngle: span.start,
       endAngle: span.end,
       innerRadius: OVERVIEW_RINGS.core[0],
-      outerRadius: OVERVIEW_RINGS.core[1],
+      outerRadius: showSecondary ? OVERVIEW_RINGS.core[1] : RIM,
       opacity: 1,
     });
 
@@ -98,14 +113,21 @@ function overviewLayout(): Layout {
     const width = (span.end - span.start) / seconds.length;
     seconds.forEach((second, i) => {
       const start = span.start + i * width;
-      layout.set(second.id, {
-        id: second.id,
-        startAngle: start,
-        endAngle: start + width,
-        innerRadius: OVERVIEW_RINGS.secondary[0],
-        outerRadius: OVERVIEW_RINGS.secondary[1],
-        opacity: 1,
-      });
+      layout.set(
+        second.id,
+        showSecondary
+          ? {
+              id: second.id,
+              startAngle: start,
+              endAngle: start + width,
+              innerRadius: OVERVIEW_RINGS.secondary[0],
+              outerRadius: OVERVIEW_RINGS.secondary[1],
+              opacity: 1,
+            }
+          : // Parked in the slot it would occupy, so opening a core unfolds its
+            // words from where they belong instead of sliding in from elsewhere.
+            parked(second.id, start + width / 2),
+      );
       // Tertiary words fold into the middle of their parent, so opening a core
       // looks like they unfold from it rather than fading in from nowhere.
       for (const third of EMOTIONS.filter((n) => n.parentId === second.id)) {
@@ -118,7 +140,8 @@ function overviewLayout(): Layout {
 
 function focusLayout(focusedId: string): Layout {
   const layout: Layout = new Map();
-  const overview = overviewLayout();
+  // Core angles match in both modes, so either gives the same centres.
+  const overview = overviewLayout("full");
 
   // Keep the focused core centred where it already sits, so it grows out of
   // its own position instead of the wheel spinning to meet it.
@@ -194,8 +217,11 @@ function focusLayout(focusedId: string): Layout {
   return layout;
 }
 
-export function computeLayout(focusedCoreId: string | null): Layout {
-  return focusedCoreId ? focusLayout(focusedCoreId) : overviewLayout();
+export function computeLayout(
+  focusedCoreId: string | null,
+  mode: OverviewMode = "full",
+): Layout {
+  return focusedCoreId ? focusLayout(focusedCoreId) : overviewLayout(mode);
 }
 
 /**

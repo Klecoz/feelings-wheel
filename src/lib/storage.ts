@@ -9,6 +9,8 @@
  * Nothing is ever sent anywhere. There is no server to send it to.
  */
 
+import type { OverviewMode } from "./layout";
+
 export const STORAGE_KEY = "feelings-wheel/v1";
 export const SCHEMA_VERSION = 1;
 
@@ -27,12 +29,15 @@ export interface Store {
   entries: Entry[];
   /** Local dates ("YYYY-MM-DD") you marked as a therapy session. */
   sessions: string[];
+  /** How much of the wheel the resting screen shows. See OverviewMode. */
+  overview: OverviewMode;
 }
 
 export const emptyStore = (): Store => ({
   version: SCHEMA_VERSION,
   entries: [],
   sessions: [],
+  overview: "full",
 });
 
 const isString = (v: unknown): v is string => typeof v === "string";
@@ -57,6 +62,9 @@ export function parseStore(raw: unknown): Store {
     version: SCHEMA_VERSION,
     entries,
     sessions: [...new Set(sessions)].sort(),
+    // Anything unrecognised - including data written before this setting
+    // existed - falls back to the wheel the app has always shown.
+    overview: candidate.overview === "cores" ? "cores" : "full",
   };
 }
 

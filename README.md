@@ -20,6 +20,11 @@ yourself.
 - **Tap through the wheel.** Tap a core emotion and it expands to fill the
   screen, showing its more specific words. The other six compress into a collar
   you can tap to switch. The browser's back button closes it again.
+- **Choose how much it shows at rest.** The default is the whole wheel — all 7
+  core feelings and their 41 more specific words. In Settings you can switch to
+  the 7 core feelings alone, which takes the smallest tap target from about 20px
+  to 64px on a phone and opens onto 7 words instead of 48. Opening a feeling is
+  identical either way.
 - **Pick at any level.** Sometimes "Bad" is as precise as it gets, and that
   counts. You can save a core emotion, or refine it all the way to "Isolated".
 - **Pick more than one.** Angry *and* ashamed *and* relieved is a normal

@@ -16,6 +16,7 @@ export interface ExportFile {
   entries: Entry[];
   sessions: string[];
 }
+// Note: the wheel preference is deliberately absent - it belongs to a device.
 
 export function exportJson(store: Store, now: Date = new Date()): string {
   const file: ExportFile = {
@@ -89,6 +90,9 @@ export function importJson(text: string, existing: Store): ImportResult {
       version: existing.version,
       entries: [...existing.entries, ...fresh],
       sessions: [...sessions].sort(),
+      // Kept from this device. How the wheel looks here is a preference of
+      // this screen, not part of the record being carried over.
+      overview: existing.overview,
     },
     added: fresh.length,
     skipped: incoming.entries.length - fresh.length,

@@ -8,6 +8,7 @@ import {
   parseStore,
   saveStore,
   type Entry,
+  type Store,
 } from "./storage";
 import { markSession } from "./sessions";
 import { addEntry, createEntry, deleteEntry, groupByDay, knownTags, normaliseTags, sortEntries, updateEntry } from "./entries";
@@ -29,7 +30,7 @@ describe("storage round-trip", () => {
   });
 
   it("saves and reloads exactly what it was given", () => {
-    const store = { version: 1, entries: [entry()], sessions: ["2026-08-01"] };
+    const store: Store = { version: 1, entries: [entry()], sessions: ["2026-08-01"], overview: "full" };
     saveStore(store);
     expect(loadStore()).toEqual(store);
   });
@@ -133,7 +134,7 @@ describe("writing without clobbering another writer", () => {
   it("applies the change to what is stored now, not to a stale copy", () => {
     // The multi-tab bug: tab two loads the store, tab one saves an entry, then
     // tab two saves and wipes it out. Reading fresh on every write is the fix.
-    saveStore({ version: 1, entries: [entry({ id: "first" })], sessions: [] });
+    saveStore({ ...emptyStore(), entries: [entry({ id: "first" })] });
     const stale = loadStore();
 
     // Another tab adds one behind our back.
@@ -149,7 +150,7 @@ describe("writing without clobbering another writer", () => {
   });
 
   it("does not resurrect an entry another writer deleted", () => {
-    saveStore({ version: 1, entries: [entry({ id: "a" }), entry({ id: "b" })], sessions: [] });
+    saveStore({ ...emptyStore(), entries: [entry({ id: "a" }), entry({ id: "b" })] });
     const stale = loadStore();
     saveStore({ ...stale, entries: stale.entries.filter((e) => e.id !== "a") });
 
@@ -158,11 +159,41 @@ describe("writing without clobbering another writer", () => {
   });
 
   it("merges session marks from another writer too", () => {
-    saveStore({ version: 1, entries: [], sessions: ["2026-08-01"] });
+    saveStore({ ...emptyStore(), sessions: ["2026-08-01"] });
     const stale = loadStore();
     saveStore({ ...stale, sessions: ["2026-08-01", "2026-08-20"] });
 
     const result = mutateStore((current) => markSession(current, "2026-09-01"));
     expect(result.sessions).toEqual(["2026-08-01", "2026-08-20", "2026-09-01"]);
+  });
+});
+
+
+describe("the wheel-view preference", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("defaults to the wheel the app has always shown", () => {
+    // Data written before this setting existed must not silently change what
+    // the user sees when they next open the app.
+    expect(emptyStore().overview).toBe("full");
+    expect(parseStore({ entries: [], sessions: [] }).overview).toBe("full");
+    expect(loadStore().overview).toBe("full");
+  });
+
+  it("keeps the choice across a reload", () => {
+    saveStore({ ...emptyStore(), overview: "cores" });
+    expect(loadStore().overview).toBe("cores");
+  });
+
+  it("falls back rather than trusting a nonsense value", () => {
+    expect(parseStore({ overview: "sideways" }).overview).toBe("full");
+    expect(parseStore({ overview: 7 }).overview).toBe("full");
+    expect(parseStore({ overview: null }).overview).toBe("full");
+  });
+
+  it("survives an unrelated change to the store", () => {
+    saveStore({ ...emptyStore(), overview: "cores" });
+    const after = mutateStore((current) => addEntry(current, entry()));
+    expect(after.overview).toBe("cores");
   });
 });
