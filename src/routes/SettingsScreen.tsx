@@ -1,15 +1,21 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { longDate } from "../lib/datetime";
 import { startOfLocalDay, unmarkSession } from "../lib/sessions";
 import { ImportError, exportJson, importJson, suggestedFilename } from "../lib/transfer";
 import { useStore } from "../lib/store-context";
 import { OverviewChoice } from "../components/OverviewChoice";
+import { storageDurability, type Durability } from "../lib/persistence";
 
 export function SettingsScreen() {
   const { store, update } = useStore();
   const fileInput = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const [durability, setDurability] = useState<Durability>("unknown");
+
+  useEffect(() => {
+    void storageDurability().then(setDurability);
+  }, []);
 
   const download = () => {
     const blob = new Blob([exportJson(store)], { type: "application/json" });
@@ -81,6 +87,13 @@ export function SettingsScreen() {
             Nothing is sent anywhere, because there is nowhere for it to go.
             Clearing this browser's data erases it, so export if you would mind
             losing it.
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-faint)]">
+            {durability === "persisted"
+              ? "This browser has agreed to keep it, rather than clearing it to free up space."
+              : durability === "best-effort"
+                ? "This browser has not promised to keep it — it may be cleared if space runs low, or after a stretch of not opening the app. Adding this to your home screen makes that much less likely."
+                : "This browser will not say whether it intends to keep it."}
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
