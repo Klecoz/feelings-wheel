@@ -58,11 +58,16 @@ export function SettingsScreen() {
 
         <section className="mt-6 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
           <h2 className="font-semibold">Your data</h2>
-          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
-            {store.entries.length} check-ins and {store.sessions.length} session
-            dates, held in this browser on this device. Nothing is sent anywhere,
-            because there is nowhere for it to go — clearing this browser's data
-            erases it, so export if you would mind losing it.
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-ink-soft)]">
+            {store.entries.length} {store.entries.length === 1 ? "check-in" : "check-ins"}
+            {store.sessions.length > 0 &&
+              ` and ${store.sessions.length} session ${store.sessions.length === 1 ? "date" : "dates"}`}
+            , held in this browser on this device.
+          </p>
+          <p className="mt-2 text-[13px] leading-relaxed text-[var(--color-ink-faint)]">
+            Nothing is sent anywhere, because there is nowhere for it to go.
+            Clearing this browser's data erases it, so export if you would mind
+            losing it.
           </p>
 
           <div className="mt-4 flex flex-wrap gap-2">
@@ -93,7 +98,7 @@ export function SettingsScreen() {
             />
           </div>
 
-          <p className="mt-3 text-xs text-[var(--color-ink-faint)]">
+          <p className="mt-3 text-xs leading-relaxed text-[var(--color-ink-faint)]">
             Importing adds to what is here — it never replaces it, so carrying the
             file between your phone and laptop cannot delete anything.
           </p>
@@ -105,7 +110,7 @@ export function SettingsScreen() {
         <section className="mt-5 rounded-2xl border border-[var(--color-line)] bg-[var(--color-surface)] p-4">
           <h2 className="font-semibold">Session dates</h2>
           {store.sessions.length === 0 ? (
-            <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+            <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-ink-soft)]">
               None marked yet. The summary uses these to work out what counts as
               “since last time”.
             </p>
@@ -127,9 +132,9 @@ export function SettingsScreen() {
           )}
         </section>
 
-        <section className="mt-5 px-1 pb-4">
+        <section className="mt-5 px-1 pb-8">
           <h2 className="text-sm font-semibold text-[var(--color-ink-soft)]">About</h2>
-          <p className="mt-1 text-sm text-[var(--color-ink-soft)]">
+          <p className="mt-1 text-[13px] leading-relaxed text-[var(--color-ink-faint)]">
             The wheel follows Geoffrey Roberts' feelings wheel: 7 core emotions,
             41 more specific words, and 130 in total. You can pick a word at any
             level — sometimes “Bad” is as precise as it gets, and that counts.

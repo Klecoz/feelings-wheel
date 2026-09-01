@@ -1,9 +1,15 @@
 import { useState } from "react";
 import { paletteFor } from "../data/colors";
 import { longDate } from "../lib/datetime";
-import { markSession, summarise, toLocalDate, windowSinceLastSession } from "../lib/sessions";
+import {
+  markSession,
+  summarise,
+  toLocalDate,
+  windowSinceLastSession,
+  type Tally,
+} from "../lib/sessions";
 import { useStore } from "../lib/store-context";
-import { pathLabels } from "../lib/tree";
+import { EmotionChip } from "../components/EmotionChip";
 
 /** A horizontal bar, sized against the largest count in its group. */
 function Bar({ label, count, max, color }: { label: string; count: number; max: number; color: string }) {
@@ -20,6 +26,46 @@ function Bar({ label, count, max, color }: { label: string; count: number; max: 
         {count}
       </span>
     </li>
+  );
+}
+
+/**
+ * Bars only mean something once the counts differ. Early on everything is a 1,
+ * and four identical full-width bars say nothing while looking like they do —
+ * so below that threshold this falls back to plain labelled dots.
+ */
+function Tallies({ items, color }: { items: Tally[]; color: (id: string) => string }) {
+  const max = items[0]?.count ?? 0;
+
+  if (max <= 1) {
+    return (
+      <ul className="flex flex-wrap gap-x-4 gap-y-1.5">
+        {items.map((tally) => (
+          <li key={tally.id} className="flex items-center gap-2 text-sm">
+            <span
+              aria-hidden
+              className="h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ background: color(tally.id) }}
+            />
+            {tally.label}
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
+  return (
+    <ul>
+      {items.map((tally) => (
+        <Bar
+          key={tally.id}
+          label={tally.label}
+          count={tally.count}
+          max={max}
+          color={color(tally.id)}
+        />
+      ))}
+    </ul>
   );
 }
 
@@ -54,8 +100,9 @@ export function SummaryScreen() {
         </header>
 
         {summary.total === 0 ? (
-          <p className="mt-8 text-[var(--color-ink-soft)]">
-            Nothing logged in this stretch yet.
+          <p className="mt-8 text-sm leading-relaxed text-[var(--color-ink-soft)]">
+            Nothing logged in this stretch yet. Anything you save on the wheel
+            from here on will gather in this page, ready for next time.
           </p>
         ) : (
           <>
@@ -63,40 +110,23 @@ export function SummaryScreen() {
               <h2 className="mb-2 text-sm font-semibold text-[var(--color-ink-soft)]">
                 Which feelings, broadly
               </h2>
-              <ul>
-                {summary.byCore.map((tally) => (
-                  <Bar
-                    key={tally.id}
-                    label={tally.label}
-                    count={tally.count}
-                    max={summary.byCore[0]!.count}
-                    color={paletteFor(tally.id).core}
-                  />
-                ))}
-              </ul>
+              <Tallies
+                items={summary.byCore}
+                color={(id) => paletteFor(id).core}
+              />
             </section>
 
-            <section className="mt-7">
-              <h2 className="mb-2 text-sm font-semibold text-[var(--color-ink-soft)]">
-                Your most-used words
-              </h2>
-              <ul>
-                {summary.topWords.slice(0, 12).map((tally) => (
-                  <Bar
-                    key={tally.id}
-                    label={tally.label}
-                    count={tally.count}
-                    max={summary.topWords[0]!.count}
-                    color={paletteFor(tally.id.split(".")[0]!).secondary}
-                  />
-                ))}
-              </ul>
-              {summary.topWords.length > 12 && (
-                <p className="mt-2 text-xs text-[var(--color-ink-faint)]">
-                  and {summary.topWords.length - 12} more.
-                </p>
-              )}
-            </section>
+            {summary.topWords[0]!.count > 1 && (
+              <section className="mt-7">
+                <h2 className="mb-2 text-sm font-semibold text-[var(--color-ink-soft)]">
+                  Words you came back to
+                </h2>
+                <Tallies
+                  items={summary.topWords.filter((t) => t.count > 1).slice(0, 12)}
+                  color={(id) => paletteFor(id.split(".")[0]!).secondary}
+                />
+              </section>
+            )}
 
             {summary.tags.length > 0 && (
               <section className="mt-7">
@@ -119,15 +149,19 @@ export function SummaryScreen() {
               </section>
             )}
 
-            <section className="mt-7">
+            <section className="mt-7 pb-4">
               <h2 className="mb-2 text-sm font-semibold text-[var(--color-ink-soft)]">
                 Every word you used
               </h2>
-              <ul className="text-sm text-[var(--color-ink-soft)]">
+              <ul className="flex flex-wrap gap-1.5">
                 {summary.topWords.map((tally) => (
-                  <li key={tally.id} className="py-0.5">
-                    {pathLabels(tally.id).reverse().join(" › ")}
-                    {tally.count > 1 && ` ×${tally.count}`}
+                  <li key={tally.id}>
+                    <EmotionChip id={tally.id} />
+                    {tally.count > 1 && (
+                      <span className="ml-1 text-xs text-[var(--color-ink-faint)] tabular-nums">
+                        ×{tally.count}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>
