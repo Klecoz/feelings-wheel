@@ -95,3 +95,28 @@ export function commit(store: Store): Store {
   saveStore(store);
   return store;
 }
+
+export interface DayGroup {
+  /** Local calendar day, "YYYY-MM-DD" — stable regardless of how it is labelled. */
+  isoDay: string;
+  entries: Entry[];
+}
+
+/**
+ * History reads as days, not as a flat list. Grouping up front keeps the render
+ * a pure map over the result rather than a loop carrying a running "was the
+ * last one a different day?" variable.
+ */
+export function groupByDay(entries: readonly Entry[]): DayGroup[] {
+  const groups: DayGroup[] = [];
+  for (const entry of sortEntries(entries)) {
+    const at = new Date(entry.at);
+    const isoDay =
+      `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, "0")}` +
+      `-${String(at.getDate()).padStart(2, "0")}`;
+    const last = groups[groups.length - 1];
+    if (last && last.isoDay === isoDay) last.entries.push(entry);
+    else groups.push({ isoDay, entries: [entry] });
+  }
+  return groups;
+}

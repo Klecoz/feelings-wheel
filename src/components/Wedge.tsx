@@ -35,17 +35,22 @@ function WedgeImpl({
     <g>
       <path
         ref={(el) => registerPath(node.id, el)}
+        data-emotion={node.id}
         fill={fill}
         stroke={selected ? "#2b2724" : "#fffdfa"}
         strokeWidth={selected ? 2.5 : 0.8}
         strokeLinejoin="round"
-        opacity={dimmed ? 0.45 : 1}
+        opacity={dimmed ? 0.55 : 1}
         style={{ cursor: "pointer", transition: "opacity 160ms ease" }}
         onClick={() => onPick(node.id)}
       >
         <title>{`${node.label} — ${node.gloss}`}</title>
       </path>
-      <g ref={(el) => registerLabel(node.id, el)} style={{ pointerEvents: "none" }}>
+      <g
+        ref={(el) => registerLabel(node.id, el)}
+        data-label={node.id}
+        style={{ pointerEvents: "none" }}
+      >
         <text
           ref={(el) => registerText(node.id, el)}
           textAnchor="middle"

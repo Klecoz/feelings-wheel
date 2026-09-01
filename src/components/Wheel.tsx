@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { EMOTIONS } from "../data/emotions";
 import { arcPath, midAngle, polar } from "../lib/geometry";
-import { computeLayout, lerpLayout, type Layout } from "../lib/layout";
-import { fitFontSize, labelLines, labelRotation } from "../lib/labels";
+import { computeLayout, lerpLayout, scaleWedge, type Layout } from "../lib/layout";
+import { labelStylesFor, labelLines, labelRotation, type LabelStyle } from "../lib/labels";
 import { isRelated } from "../lib/tree";
 import { Wedge } from "./Wedge";
 
@@ -32,6 +32,7 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
 
   const current = useRef<Layout>(computeLayout(focusedCoreId));
   const frame = useRef<number | null>(null);
+  const styles = useRef<Map<string, LabelStyle>>(new Map());
 
   const lines = useMemo(
     () => new Map(EMOTIONS.map((n) => [n.id, labelLines(n.label)])),
@@ -43,7 +44,7 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
     for (const [id, wedge] of layout) {
       const path = paths.current.get(id);
       if (path) {
-        path.setAttribute("d", arcPath(CENTRE, CENTRE, wedge));
+        path.setAttribute("d", arcPath(CENTRE, CENTRE, scaleWedge(wedge, RADIUS)));
         // Collapsed wedges must not swallow taps meant for what is beneath.
         path.style.pointerEvents = wedge.opacity < 0.05 ? "none" : "auto";
       }
@@ -56,9 +57,10 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
           ((wedge.innerRadius + wedge.outerRadius) / 2) * RADIUS,
           angle,
         );
+        const orientation = styles.current.get(id)?.orientation ?? "radial";
         label.setAttribute(
           "transform",
-          `translate(${at.x.toFixed(2)} ${at.y.toFixed(2)}) rotate(${labelRotation(angle).toFixed(2)})`,
+          `translate(${at.x.toFixed(2)} ${at.y.toFixed(2)}) rotate(${labelRotation(angle, orientation).toFixed(2)})`,
         );
         label.setAttribute("opacity", wedge.opacity.toFixed(3));
       }
@@ -71,14 +73,10 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
    * opacity fade hides any overhang in transit.
    */
   const sizeText = useCallback(
-    (layout: Layout) => {
-      for (const [id, wedge] of layout) {
-        const text = texts.current.get(id);
-        if (!text) continue;
-        text.setAttribute(
-          "font-size",
-          fitFontSize(lines.get(id)!, wedge, RADIUS).toFixed(2),
-        );
+    (layout: Layout, focused: string | null) => {
+      styles.current = labelStylesFor(layout, focused, RADIUS, lines);
+      for (const [id, style] of styles.current) {
+        texts.current.get(id)?.setAttribute("font-size", style.fontSize.toFixed(2));
       }
     },
     [lines],
@@ -86,7 +84,7 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
 
   useEffect(() => {
     const to = computeLayout(focusedCoreId);
-    sizeText(to);
+    sizeText(to, focusedCoreId);
 
     if (prefersReducedMotion()) {
       current.current = to;
@@ -121,7 +119,7 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
   });
 
   useLayoutEffect(() => {
-    sizeText(computeLayout(focusedCoreId));
+    sizeText(computeLayout(focusedCoreId), focusedCoreId);
     // Only on mount: afterwards the effect above owns sizing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -156,7 +154,8 @@ export function Wheel({ focusedCoreId, selectedIds, onFocus, onPick }: WheelProp
   return (
     <svg
       viewBox={`0 0 ${SIZE} ${SIZE}`}
-      className="block h-full w-full touch-manipulation select-none"
+      className="block h-full max-h-full w-full touch-manipulation select-none"
+      preserveAspectRatio="xMidYMid meet"
       role="group"
       aria-label="Feelings wheel"
     >

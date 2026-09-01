@@ -8,7 +8,7 @@ import {
   saveStore,
   type Entry,
 } from "./storage";
-import { addEntry, createEntry, deleteEntry, knownTags, normaliseTags, sortEntries, updateEntry } from "./entries";
+import { addEntry, createEntry, deleteEntry, groupByDay, knownTags, normaliseTags, sortEntries, updateEntry } from "./entries";
 
 const entry = (over: Partial<Entry> = {}): Entry => ({
   id: "e1",
@@ -100,5 +100,27 @@ describe("entry handling", () => {
     const a = createEntry({ emotionIds: ["sad"], tags: [], at: new Date() });
     const b = createEntry({ emotionIds: ["sad"], tags: [], at: new Date() });
     expect(a.id).not.toBe(b.id);
+  });
+});
+
+describe("grouping history by day", () => {
+  it("puts entries from the same local day together, newest day first", () => {
+    const groups = groupByDay([
+      entry({ id: "a", at: new Date(2026, 7, 20, 9).toISOString() }),
+      entry({ id: "b", at: new Date(2026, 7, 21, 9).toISOString() }),
+      entry({ id: "c", at: new Date(2026, 7, 20, 18).toISOString() }),
+    ]);
+    expect(groups.map((g) => g.isoDay)).toEqual(["2026-08-21", "2026-08-20"]);
+    expect(groups[1]!.entries.map((e) => e.id)).toEqual(["c", "a"]);
+  });
+
+  it("groups by local day, not UTC day", () => {
+    // 11pm local on the 20th belongs to the 20th even when UTC calls it the 21st.
+    const groups = groupByDay([entry({ id: "late", at: new Date(2026, 7, 20, 23, 30).toISOString() })]);
+    expect(groups[0]!.isoDay).toBe("2026-08-20");
+  });
+
+  it("returns nothing for no entries", () => {
+    expect(groupByDay([])).toEqual([]);
   });
 });

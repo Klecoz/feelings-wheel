@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CORES, EMOTIONS } from "../data/emotions";
-import { computeLayout, lerpLayout, type Layout } from "./layout";
+import { computeLayout, lerpLayout, scaleWedge, type Layout } from "./layout";
 import { TAU, alignAngle, arcPath, polar } from "./geometry";
 
 const visible = (layout: Layout, ring: "core" | "secondary" | "tertiary", coreId?: string) =>
@@ -226,5 +226,27 @@ describe("arc paths", () => {
   it("aligns angles onto the nearest branch", () => {
     expect(alignAngle(0.1, TAU - 0.1)).toBeCloseTo(TAU + 0.1, 9);
     expect(alignAngle(TAU - 0.1, 0.1)).toBeCloseTo(-0.1, 9);
+  });
+});
+
+describe("scaling to screen units", () => {
+  it("turns fractional radii into real ones", () => {
+    // The wheel is laid out in fractions of its radius so it fits any screen.
+    // Drawing it without scaling produces a half-pixel dot instead of a wheel.
+    const wedge = computeLayout(null).get("sad")!;
+    expect(wedge.outerRadius).toBeLessThanOrEqual(1);
+    const scaled = scaleWedge(wedge, 188);
+    expect(scaled.outerRadius).toBeCloseTo(wedge.outerRadius * 188, 9);
+    expect(scaled.innerRadius).toBeCloseTo(wedge.innerRadius * 188, 9);
+    expect(scaled.startAngle).toBe(wedge.startAngle);
+  });
+
+  it("produces a path at screen scale, not unit scale", () => {
+    // The secondary ring runs out to the rim, so its outer arc is the full
+    // radius. Before scaling was applied this drew an arc of radius 1.
+    const wedge = scaleWedge(computeLayout(null).get("sad.lonely")!, 188);
+    const d = arcPath(200, 200, wedge);
+    expect(d).toContain("A 188 188");
+    expect(d).not.toContain("A 1 1");
   });
 });

@@ -225,3 +225,16 @@ export function lerpLayout(from: Layout, to: Layout, t: number): Layout {
 }
 
 export const WHEEL_HUB_RADIUS = HUB;
+
+/**
+ * Layout radii are fractions of the wheel, so they survive any screen size.
+ * They have to be scaled to real units before they can be drawn — forgetting
+ * that renders the whole wheel as a half-pixel dot, so it has its own test.
+ */
+export function scaleWedge(wedge: WedgeLayout, radius: number): WedgeLayout {
+  return {
+    ...wedge,
+    innerRadius: wedge.innerRadius * radius,
+    outerRadius: wedge.outerRadius * radius,
+  };
+}
