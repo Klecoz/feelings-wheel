@@ -1,10 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { requestPersistentStorage, storageDurability } from "./persistence";
 
+/**
+ * jsdom's navigator has no `storage` at all, so it has to be defined rather
+ * than spied on — which is also a fair simulation of a browser without it.
+ */
 const withStorage = (impl: unknown) =>
-  vi.spyOn(navigator, "storage", "get").mockReturnValue(impl as StorageManager);
+  Object.defineProperty(navigator, "storage", { value: impl, configurable: true });
 
-afterEach(() => vi.restoreAllMocks());
+afterEach(() => {
+  Reflect.deleteProperty(navigator, "storage");
+  vi.restoreAllMocks();
+});
 
 describe("asking the browser to keep the record", () => {
   it("reports success when the browser agrees", async () => {
